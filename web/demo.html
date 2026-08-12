@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Switch — 演示</title>
+
+<!-- ⚠️ 引导脚本必须内联、必须在样式表之前。理由写在 switch-boot.js 里。
+     这里是 demo 版：壁纸用 CSS 渐变占位，所以不读 assets/ 里的图。
+     真实用法直接用 switch-boot.js，把下面的 WALLS 换成你的图片路径。 -->
+<script>
+(function () {
+  var WALLS = [
+    'linear-gradient(160deg,#fdf2f7 0%,#fce4ef 45%,#f8d7e6 100%)',
+    'linear-gradient(160deg,#fbf7f0 0%,#f5ede0 50%,#efe4d4 100%)',
+    'linear-gradient(160deg,#eef4fb 0%,#dfeaf7 50%,#cfe0f2 100%)',
+    'linear-gradient(160deg,#2b2a33 0%,#3a2f3d 50%,#241f2b 100%)',
+    'linear-gradient(160deg,#1f2430 0%,#2a3242 55%,#161b24 100%)'
+  ];
+  var THEMES = ['light', 'light', 'light', 'dark', 'dark'];
+  var idx = 0;
+  try {
+    idx = parseInt(localStorage.getItem('demoWallpaper'), 10);
+    if (!isFinite(idx) || idx < 0 || idx >= WALLS.length) idx = 0;
+  } catch (e) { idx = 0; }
+  var root = document.documentElement;
+  root.setAttribute('data-chat-bg', THEMES[idx]);
+  root.setAttribute('data-wallpaper', String(idx));
+  root.style.setProperty('--chat-wallpaper', WALLS[idx]);
+})();
+</script>
+
+<link rel="stylesheet" href="switch.css">
+
+<style>
+  /* 以下只是让 demo 长得像个聊天界面，不是 Switch 的一部分 */
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 100%; min-height: 100%; }
+  body {
+    font: 400 16px/1.65 -apple-system, BlinkMacSystemFont, "PingFang SC", system-ui, sans-serif;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    min-height: 100vh;
+  }
+  #chat {
+    position: relative;
+    z-index: 20;              /* 必须高于 #chatBg 的 15 */
+    max-width: 560px;
+    margin: 0 auto;
+    padding: 24px 16px 230px;   /* 给底下那坨 fixed 控件让位 */
+    min-height: 100vh;
+  }
+  header { text-align: center; padding: 8px 0 28px; }
+  h1 { font-size: 20px; font-weight: 600; }
+  .sub { font-size: 13px; color: var(--text-secondary); margin-top: 6px; }
+
+  .msg { display: flex; margin-bottom: 14px; }
+  .msg-other { justify-content: flex-start; }
+  .msg-user { justify-content: flex-end; }
+  .bubble {
+    max-width: 76%;
+    padding: 11px 16px;
+    border-radius: 10px;
+    font-size: 15px;
+  }
+  .msg-other .bubble { border-top-left-radius: 4px; }
+  .msg-user .bubble { border-top-right-radius: 4px; }
+
+  .composer-wrap { position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; padding: 16px; }
+  .composer-box {
+    max-width: 560px; margin: 0 auto;
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 18px; border-radius: 22px;
+  }
+  /* ⚠️ 这里必须用 --composer-ink-faint，不能用 --text-secondary：
+     输入框底色两套主题下都是浅的，深色主题里用 --text-secondary
+     就是白底上一行浅灰字，看不见。 */
+  .composer-box .composer-hint { color: var(--composer-ink-faint); font-size: 14px; flex: 1; }
+
+  .switch-btn {
+    display: block; margin: 0 auto 10px;
+    padding: 11px 22px; border: 1px solid var(--border-strong);
+    border-radius: 999px; background: var(--bg-surface);
+    color: var(--text-primary); font-size: 14px; font-weight: 500;
+    cursor: pointer; font-family: inherit;
+  }
+  .switch-btn:active { opacity: .7; }
+  .meta { text-align: center; font-size: 12px; color: var(--text-secondary); }
+  .dots { display: flex; justify-content: center; gap: 8px; margin: 8px 0 12px; }
+  .dot {
+    width: 22px; height: 22px; padding: 0; cursor: pointer;
+    border: 1px solid var(--border-strong); border-radius: 50%;
+    background: var(--bg-surface); font-size: 11px; color: var(--text-secondary);
+    font-family: inherit; line-height: 1;
+  }
+  .dot[aria-current="true"] { background: var(--text-primary); color: var(--bg-primary); border-color: transparent; }
+</style>
+</head>
+<body class="chat-ready">
+
+<!-- 壁纸层。必须是空的独立元素，不能把内容塞进来 -->
+<div id="chatBg" aria-hidden="true"></div>
+
+<div id="chat">
+  <header>
+    <h1>Switch</h1>
+    <p class="sub">点下面的按钮换壁纸 · 刷新页面看它记不记得</p>
+  </header>
+
+  <div class="msg msg-other"><div class="bubble">壁纸铺在独立的 fixed 层上，往下滚试试</div></div>
+  <div class="msg msg-user"><div class="bubble">字滚，背景不动</div></div>
+  <div class="msg msg-other"><div class="bubble">后两张是深色图，切过去的时候整套主题变量会跟着翻——气泡、字色、边框、输入框，全部</div></div>
+  <div class="msg msg-user"><div class="bubble">所以组件里一律用变量，别写死色号</div></div>
+  <div class="msg msg-other"><div class="bubble">换完刷新一下。不闪白，因为 &lt;head&gt; 里那段内联脚本在第一次算样式之前就把壁纸挂上了</div></div>
+  <div class="msg msg-user"><div class="bubble">那段必须内联，换成外链就会开屏闪一下</div></div>
+</div>
+
+<div class="composer-wrap">
+  <button class="switch-btn" id="switchBtn" type="button">Switch</button>
+  <div class="dots" id="dots"></div>
+  <p class="meta" id="meta"></p>
+  <div class="composer-box"><span class="composer-hint">说点什么…</span></div>
+</div>
+
+<script>
+/* demo 版的切换逻辑。真实项目直接用 switch.js，接法一样：
+     document.getElementById('switchBtn').onclick = () => Switch.random(); */
+(function () {
+  var WALLS = [
+    'linear-gradient(160deg,#fdf2f7 0%,#fce4ef 45%,#f8d7e6 100%)',
+    'linear-gradient(160deg,#fbf7f0 0%,#f5ede0 50%,#efe4d4 100%)',
+    'linear-gradient(160deg,#eef4fb 0%,#dfeaf7 50%,#cfe0f2 100%)',
+    'linear-gradient(160deg,#2b2a33 0%,#3a2f3d 50%,#241f2b 100%)',
+    'linear-gradient(160deg,#1f2430 0%,#2a3242 55%,#161b24 100%)'
+  ];
+  var THEMES = ['light', 'light', 'light', 'dark', 'dark'];
+  var NAMES = ['浅粉', '浅米', '浅蓝', '深紫', '深蓝'];
+
+  function current() {
+    var i = parseInt(document.documentElement.getAttribute('data-wallpaper'), 10);
+    return isFinite(i) ? i : 0;
+  }
+
+  function apply(idx) {
+    var n = WALLS.length;
+    idx = ((idx % n) + n) % n;
+    var root = document.documentElement;
+    root.setAttribute('data-chat-bg', THEMES[idx]);
+    root.setAttribute('data-wallpaper', String(idx));
+    root.style.setProperty('--chat-wallpaper', WALLS[idx]);
+    try { localStorage.setItem('demoWallpaper', String(idx)); } catch (e) {}
+    document.getElementById('meta').textContent =
+      '第 ' + (idx + 1) + ' / ' + n + ' 张 · ' + NAMES[idx] + ' · ' + THEMES[idx] + ' 主题';
+    [].forEach.call(document.querySelectorAll('.dot'), function (b, i) {
+      b.setAttribute('aria-current', String(i === idx));
+    });
+  }
+
+  /* demo 专属：一排圆点直接跳到某张，方便挨个对比浅色和深色两套主题。
+     真实项目里入口只有一颗随机按钮，不需要这个。 */
+  (function buildDots() {
+    var box = document.getElementById('dots');
+    WALLS.forEach(function (_, i) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'dot';
+      b.textContent = String(i + 1);
+      b.title = NAMES[i] + ' · ' + THEMES[i];
+      b.onclick = function () { apply(i); };
+      box.appendChild(b);
+    });
+  })();
+
+  document.getElementById('switchBtn').onclick = function () {
+    /* 随机但避开当前这张——点了画面没变，用户会以为按钮坏了 */
+    var cur = current(), next = cur, guard = 0;
+    while (next === cur && guard++ < 8) next = Math.floor(Math.random() * WALLS.length);
+    apply(next);
+  };
+
+  apply(current());
+})();
+</script>
+</body>
+</html>

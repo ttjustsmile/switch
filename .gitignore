@@ -1,0 +1,13 @@
+.DS_Store
+
+# 壁纸素材不进仓库（见 assets/README.md）。
+# 只保留那份说明本身。
+assets/*
+!assets/README.md
+
+# Swift / Xcode
+ios/.build/
+ios/.swiftpm/
+*.xcuserdatadir
+xcuserdata/
+DerivedData/

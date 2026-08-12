@@ -1,0 +1,174 @@
+/* ==========================================================================
+   Switch — 壁纸层 + 随之翻转的主题变量
+   ==========================================================================
+
+   两条规矩，别改：
+
+   1. 壁纸铺在**独立的 fixed 层**（#chatBg），不是 body 的 background。
+      body 背景会跟着文档滚，长对话滚到底图就跑没了；fixed 层钉在视口上，
+      字滚背景不动。而且侧栏推开主内容时，这一层要跟主内容吃同一个
+      transform，壁纸才会跟着一起被推走，而不是穿帮地停在原地。
+
+   2. 所有全屏面板铺的是**同一个变量** var(--chat-wallpaper)。
+      加新面板时把选择器加进下面那条列表就行，不要各自写死一张图 ——
+      写死的那些在 Switch 换图之后会集体对不上。
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   1. 壁纸层本体
+   -------------------------------------------------------------------------- */
+
+#chatBg {
+  display: none;
+  position: fixed;
+  inset: 0;
+  /* 压在聊天内容下面、页面底色上面。你的层级不同就改这一个数 */
+  z-index: 15;
+  /* 关键：这一层只负责好看，不能吃掉任何点击 */
+  pointer-events: none;
+
+  /* 图没加载出来之前先垫一层底色，别闪白 */
+  background-color: var(--wall-fallback, #fdf8fa);
+  background-image: var(--chat-wallpaper);
+  background-position: center top;
+  background-size: cover;
+  background-repeat: no-repeat;
+
+  /* iOS Safari 上滚动时壁纸偶尔会抖一下，这两句能压住 */
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+
+/* 首屏别让壁纸先于内容出现（body 加上 .chat-ready 再显示）。
+   没有这一步的话，慢网络下会先看到一张孤零零的壁纸再"啪"地长出界面。 */
+body.chat-ready #chatBg {
+  display: block;
+}
+
+/* 壁纸一旦生效，压在它上面的容器必须让开自己的底色，否则等于没铺 */
+html[data-chat-bg] #chat,
+html[data-chat-bg] .composer-wrap {
+  background: transparent;
+}
+
+/* ⚠️ isolation:isolate 是必须的，不是装饰。
+   壁纸层用了 z-index，如果 body 不开一个新的层叠上下文，
+   页面里任何一个带 mix-blend-mode / filter 的元素都可能把这一层的
+   叠放顺序算歪，表现是壁纸偶发盖住聊天内容或整片变黑。 */
+html[data-chat-bg] body {
+  isolation: isolate;
+}
+
+/* --------------------------------------------------------------------------
+   2. 所有全屏面板铺同一张
+   --------------------------------------------------------------------------
+   加新面板就把 id 加进来。共用一个 mixin 式的选择器列表，
+   而不是每个面板各写一份 —— 各写一份必然有人忘记改。 */
+
+html[data-chat-bg] #diaryPanel,
+html[data-chat-bg] #memoryPanel,
+html[data-chat-bg] #searchPanel,
+html[data-chat-bg] #morePanel {
+  background-color: var(--wall-fallback, #fdf8fa);
+  background-image: var(--chat-wallpaper);
+  background-position: center top;
+  background-size: cover;
+  background-repeat: no-repeat;
+}
+
+/* --------------------------------------------------------------------------
+   3. 两套主题变量
+   --------------------------------------------------------------------------
+   壁纸是浅色图就挂 data-chat-bg="light"，深色图挂 "dark"。
+   切换时只有这个属性变，下面所有颜色跟着翻 —— 组件里一律用变量，
+   不要写死色号，否则换深色壁纸时那些地方会变成白底白字。 */
+
+html[data-chat-bg="light"] {
+  --bg-primary: #f8f8f6;
+  --bg-surface: #f6f6f4;
+  --bg-sunken: #e6e6e4;
+
+  --text-primary: #1f1e1d;
+  --text-secondary: #6e6d66;
+  --text-faint: #a6a39a;
+
+  --border: rgba(31, 30, 29, 0.1);
+  --border-strong: rgba(31, 30, 29, 0.18);
+  --shadow-soft: 0 1px 3px rgba(31, 30, 29, 0.05);
+
+  /* 输入框内部的字。⚠️ 单独一档，不能复用 --text-primary/--text-secondary */
+  --composer-ink: #201f1d;
+  --composer-ink-faint: rgba(32, 31, 29, 0.55);
+}
+
+html[data-chat-bg="dark"] {
+  --bg-primary: #1c1c1e;
+  --bg-surface: rgba(28, 28, 30, 0.42);
+  --bg-sunken: #2b2a28;
+
+  --text-primary: #f4f3ef;
+  --text-secondary: rgba(244, 243, 239, 0.56);
+  --text-faint: rgba(244, 243, 239, 0.42);
+
+  --border: rgba(255, 255, 255, 0.16);
+  --border-strong: rgba(255, 255, 255, 0.24);
+  --shadow-soft: 0 1px 3px rgba(0, 0, 0, 0.18);
+
+  /* ⚠️ 深色主题下这两个**仍然是深色**，因为输入框底是浅的（见下面 .composer-box）。
+     这是整套变量里唯一不跟着主题翻的一组，踩过一次：
+     图省事复用了 --text-secondary，深色主题下就成了白底上一行浅灰字，
+     placeholder 基本看不见 —— 而这恰恰是最需要看清的一行。
+     凡是"底色不跟主题翻"的控件，它的字色也必须单独一档。 */
+  --composer-ink: #201f1d;
+  --composer-ink-faint: rgba(32, 31, 29, 0.55);
+}
+
+/* --------------------------------------------------------------------------
+   4. 气泡和输入框
+   --------------------------------------------------------------------------
+   ⚠️ 壁纸上的卡片一律**不透明**，并且关掉 backdrop-filter。
+   花墙那种密集碎花图案透过半透明卡片会把字搅得完全读不了；
+   毛玻璃在这种图案上也只是把它糊成一团脏色，不是"高级感"。
+   要透明感就调整下面的色值本身，别开滤镜。 */
+
+html[data-chat-bg] .msg-user .bubble {
+  background: var(--bubble-mine, #f7d1e4);
+  box-shadow: var(--shadow-soft);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  color: #201f1d;
+}
+
+html[data-chat-bg] .msg-other .bubble {
+  background: var(--bubble-other, #fff);
+  box-shadow: var(--shadow-soft);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  color: #201f1d;
+}
+
+/* 输入框两套主题下都是浅底 —— 深色壁纸上摆一条深色输入框会整个糊进背景里，
+   找不到该往哪儿打字。所以它的字色走 --composer-ink 那一组，不跟主题翻。 */
+html[data-chat-bg="light"] .composer-box {
+  background: #fff;
+  border: 0;
+  box-shadow: 0 1px 3px rgba(32, 31, 29, 0.06);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  color: var(--composer-ink);
+}
+
+html[data-chat-bg="dark"] .composer-box {
+  background: rgba(255, 255, 255, 0.92);
+  border: 0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  color: var(--composer-ink);
+}
+
+/* 输入框里的占位字和图标。别在这儿写 --text-secondary，见上面那段警告。 */
+html[data-chat-bg] .composer-box ::placeholder,
+html[data-chat-bg] .composer-box .composer-hint {
+  color: var(--composer-ink-faint);
+}
