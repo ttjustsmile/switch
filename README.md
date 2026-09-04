@@ -58,4 +58,8 @@ NavigationStack {
 
 ## License
 
-Non-Commercial Use License，见 [LICENSE](LICENSE)。
+源码可用（Source-Available），**不是开源**。可以自己看、自己跑、自己改着用；
+**禁止任何商业用途**，也禁止以商业为目的的二次转载／改版转载；任何公开使用、
+转载、演示、发帖、做视频，都**必须显著署名原作者并链回本仓库**。
+完整条款见 [LICENSE](LICENSE)。
+
