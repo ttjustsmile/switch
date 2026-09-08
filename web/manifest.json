@@ -1,0 +1,20 @@
+{
+  "name": "sweet house",
+  "short_name": "sweet house",
+  "start_url": "./demo.html",
+  "display": "standalone",
+  "background_color": "#ffd6e0",
+  "theme_color": "#ffa0be",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
